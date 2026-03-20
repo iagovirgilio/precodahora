@@ -1,0 +1,81 @@
+# API Contract
+
+## Endpoint principal
+
+### `POST /api/v1/precos/buscar`
+
+Consulta os dados de precos para uma lista de GTINs e retorna:
+
+- `consultado_em`
+- `localizacao`
+- `resultados` por GTIN
+
+### Request body
+
+```json
+{
+  "gtins": ["7894904015108"],
+  "latitude": -12.2690245,
+  "longitude": -38.9295865,
+  "raio": 15,
+  "horas": 72
+}
+```
+
+### Response body (resumido)
+
+```json
+{
+  "consultado_em": "2026-03-20T13:21:28Z",
+  "localizacao": {
+    "latitude": -12.2690245,
+    "longitude": -38.9295865,
+    "raio_km": 15
+  },
+  "resultados": {
+    "7894904015108": {
+      "total_encontrado": 43,
+      "top5": [
+        {
+          "descricao": "FILE PEITO FGO SEARA",
+          "gtin": "7894904015108",
+          "preco": 19.9,
+          "preco_original": null,
+          "desconto": null,
+          "unidade": "BDJ9",
+          "foto": "https://api.precodahora.ba.gov.br/v1/images/7894904015108",
+          "registrado_em": "2026-03-20T13:02:25Z",
+          "loja": {
+            "nome": "ATACADAO",
+            "cnpj": "93209765054985",
+            "endereco": "AVENIDA EDUARDO FROES DA MOTA, 5500",
+            "bairro": "SOBRADINHO",
+            "cidade": "FEIRA DE SANTANA",
+            "uf": "BA",
+            "cep": "44021215",
+            "telefone": null,
+            "latitude": -12.2322007,
+            "longitude": -38.9736466,
+            "distancia_km": 2.8
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+## Endpoint de saude
+
+### `GET /health`
+
+Retorna status da API e parametros basicos.
+
+## Codigos de status
+
+- `200`: sucesso
+- `422`: payload invalido
+- `429`: rate limit excedido
+- `502`: erro HTTP na fonte externa
+- `503`: erro de rede com a fonte externa
+- `500`: erro interno inesperado
