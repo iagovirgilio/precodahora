@@ -120,5 +120,7 @@ Cobertura:
 - `docs/API.md`
 - `docs/ARCHITECTURE.md`
 - `docs/OPERATIONS.md`
+- `docs/DAILY_WORKFLOW.md`
+- `docs/CODE_QUALITY.md`
 - `CONTRIBUTING.md`
 - `CHANGELOG.md`
