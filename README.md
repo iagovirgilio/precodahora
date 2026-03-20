@@ -120,3 +120,5 @@ Cobertura:
 - `docs/API.md`
 - `docs/ARCHITECTURE.md`
 - `docs/OPERATIONS.md`
+- `CONTRIBUTING.md`
+- `CHANGELOG.md`
