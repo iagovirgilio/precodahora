@@ -9,6 +9,8 @@ Este projeto segue, de forma simplificada:
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-03-20
+
 ### Added
 
 - API FastAPI com endpoint `POST /api/v1/precos/buscar`.
