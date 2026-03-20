@@ -3,8 +3,9 @@ Script de diagnóstico — inspeciona todos os cookies e headers
 recebidos do precodahora.ba.gov.br para identificar o CSRF token correto.
 """
 
-import requests
 import re
+
+import requests
 
 BASE_URL = "https://precodahora.ba.gov.br/produtos/"
 
@@ -33,7 +34,8 @@ for name, value in session.cookies.items():
 print("\n=== Tentando extrair csrf_token do cookie 'session' (JWT Flask) ===")
 session_cookie = session.cookies.get("session")
 if session_cookie:
-    import base64, json as _json
+    import base64
+    import json as _json
 
     try:
         # Cookie de sessão Flask é base64(payload).assinatura

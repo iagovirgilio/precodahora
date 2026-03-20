@@ -20,6 +20,7 @@ htmlcov/
 # Tool caches
 .mypy_cache/
 .ruff_cache/
+.pre-commit-cache/
 
 # IDE
 .vscode/

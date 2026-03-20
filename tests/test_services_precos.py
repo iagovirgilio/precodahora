@@ -1,7 +1,7 @@
 import requests
 
-from app.services.precos import PrecoDaHoraService, SearchParams
 import app.services.precos as precos_module
+from app.services.precos import PrecoDaHoraService, SearchParams
 
 
 def test_to_iso_utc_deve_converter_data_do_site():
@@ -273,7 +273,11 @@ def test_top5_usa_len_quando_total_registros_ausente(monkeypatch):
     service = PrecoDaHoraService()
 
     def fake_busca(_params):
-        return {"resultado": [{"produto": {"gtin": 1, "precoUnitario": 1.0}, "estabelecimento": {}}]}
+        return {
+            "resultado": [
+                {"produto": {"gtin": 1, "precoUnitario": 1.0}, "estabelecimento": {}}
+            ]
+        }
 
     monkeypatch.setattr(service, "_buscar", fake_busca)
     resultado = service.top5_mais_baratos("1", -12.0, -38.0, 15, 72)
@@ -294,8 +298,7 @@ def test_buscar_lista_retorna_contexto(monkeypatch):
 
 
 def test_get_preco_da_hora_service_retorna_singleton():
-    if hasattr(precos_module, "_SERVICE_SINGLETON"):
-        delattr(precos_module, "_SERVICE_SINGLETON")
+    precos_module._SERVICE_SINGLETON = None
     s1 = precos_module.get_preco_da_hora_service()
     s2 = precos_module.get_preco_da_hora_service()
     assert s1 is s2

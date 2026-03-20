@@ -56,7 +56,11 @@ async def rate_limit_middleware(request: Request, call_next):
     response = await call_next(request)
     elapsed_ms = round((time.time() - started) * 1000, 2)
     logger.info(
-        f"http_request method={request.method} path={request.url.path} status={response.status_code} elapsed_ms={elapsed_ms}"
+        "http_request method=%s path=%s status=%s elapsed_ms=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
     )
     return response
 

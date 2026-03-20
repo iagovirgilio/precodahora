@@ -1,5 +1,5 @@
-from fastapi.testclient import TestClient
 import requests
+from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.main import _rate_limit_bucket, app
@@ -15,10 +15,7 @@ class FakeServiceSuccess:
                 "longitude": longitude,
                 "raio_km": raio,
             },
-            "resultados": {
-                gtin: {"total_encontrado": 0, "top5": []}
-                for gtin in gtins
-            },
+            "resultados": {gtin: {"total_encontrado": 0, "top5": []} for gtin in gtins},
         }
 
 
@@ -102,7 +99,9 @@ def test_post_buscar_deve_retornar_502_para_erro_http_upstream():
 
 
 def test_post_buscar_deve_retornar_503_para_erro_rede():
-    app.dependency_overrides[get_preco_da_hora_service] = lambda: FakeServiceNetworkError()
+    app.dependency_overrides[get_preco_da_hora_service] = (
+        lambda: FakeServiceNetworkError()
+    )
     client = TestClient(app)
     response = client.post("/api/v1/precos/buscar", json={"gtins": ["7894904015108"]})
     assert response.status_code == 503
@@ -110,7 +109,9 @@ def test_post_buscar_deve_retornar_503_para_erro_rede():
 
 
 def test_post_buscar_deve_retornar_500_para_runtime_error():
-    app.dependency_overrides[get_preco_da_hora_service] = lambda: FakeServiceRuntimeError()
+    app.dependency_overrides[get_preco_da_hora_service] = (
+        lambda: FakeServiceRuntimeError()
+    )
     client = TestClient(app)
     response = client.post("/api/v1/precos/buscar", json={"gtins": ["7894904015108"]})
     assert response.status_code == 500

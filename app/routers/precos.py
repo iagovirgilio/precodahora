@@ -1,5 +1,6 @@
-import requests
 import logging
+
+import requests
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.schemas.precos import BuscarPrecosRequest, BuscarPrecosResponse

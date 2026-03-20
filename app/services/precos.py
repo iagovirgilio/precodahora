@@ -22,6 +22,8 @@ BROWSER_HEADERS = {
     "x-requested-with": "XMLHttpRequest",
 }
 
+_SERVICE_SINGLETON: "PrecoDaHoraService | None" = None
+
 
 @dataclass
 class SearchParams:
@@ -57,14 +59,18 @@ class PrecoDaHoraService:
                 )
                 if resposta.status_code in {429, 500, 502, 503, 504}:
                     if tentativa < settings.request_retry_attempts:
-                        espera = settings.request_backoff_base_seconds * (2 ** (tentativa - 1))
+                        espera = settings.request_backoff_base_seconds * (
+                            2 ** (tentativa - 1)
+                        )
                         time.sleep(espera)
                         continue
                 return resposta
             except requests.RequestException as exc:
                 ultima_excecao = exc
                 if tentativa < settings.request_retry_attempts:
-                    espera = settings.request_backoff_base_seconds * (2 ** (tentativa - 1))
+                    espera = settings.request_backoff_base_seconds * (
+                        2 ** (tentativa - 1)
+                    )
                     time.sleep(espera)
                     continue
                 raise
@@ -82,7 +88,9 @@ class PrecoDaHoraService:
                 )
                 if response.status_code in {429, 500, 502, 503, 504}:
                     if tentativa < settings.request_retry_attempts:
-                        espera = settings.request_backoff_base_seconds * (2 ** (tentativa - 1))
+                        espera = settings.request_backoff_base_seconds * (
+                            2 ** (tentativa - 1)
+                        )
                         time.sleep(espera)
                         continue
                 response.raise_for_status()
@@ -90,7 +98,9 @@ class PrecoDaHoraService:
             except requests.RequestException as exc:
                 ultima_excecao = exc
                 if tentativa < settings.request_retry_attempts:
-                    espera = settings.request_backoff_base_seconds * (2 ** (tentativa - 1))
+                    espera = settings.request_backoff_base_seconds * (
+                        2 ** (tentativa - 1)
+                    )
                     time.sleep(espera)
                     continue
                 raise
@@ -182,7 +192,9 @@ class PrecoDaHoraService:
         if value is None:
             return None
         try:
-            return float(value)
+            if isinstance(value, (str, int, float)):
+                return float(value)
+            return None
         except (TypeError, ValueError):
             return None
 
@@ -332,8 +344,6 @@ class PrecoDaHoraService:
 
 def get_preco_da_hora_service() -> PrecoDaHoraService:
     global _SERVICE_SINGLETON
-    try:
-        return _SERVICE_SINGLETON
-    except NameError:
+    if _SERVICE_SINGLETON is None:
         _SERVICE_SINGLETON = PrecoDaHoraService()
-        return _SERVICE_SINGLETON
+    return _SERVICE_SINGLETON

@@ -14,8 +14,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "black>=25.1.0",
+    "httpx>=0.28.1",
+    "mypy>=1.18.2",
+    "pre-commit>=4.3.0",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
+    "ruff>=0.13.0",
+    "types-requests>=2.32.4.20250913",
 ]
 
 [tool.pytest.ini_options]
@@ -33,3 +39,25 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+exclude = "(.venv|htmlcov|.pytest_cache)"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [".venv", "htmlcov", ".pytest_cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["app"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true
+no_implicit_optional = true
