@@ -1,7 +1,11 @@
 import requests
 
 import app.services.precos as precos_module
-from app.services.precos import PrecoDaHoraService, SearchParams
+from app.services.precos import (
+    PrecoDaHoraService,
+    SearchParams,
+    UpstreamChallengeError,
+)
 
 
 def test_to_iso_utc_deve_converter_data_do_site():
@@ -302,3 +306,117 @@ def test_get_preco_da_hora_service_retorna_singleton():
     s1 = precos_module.get_preco_da_hora_service()
     s2 = precos_module.get_preco_da_hora_service()
     assert s1 is s2
+
+
+def test_obter_csrf_token_deve_detectar_challenge(monkeypatch):
+    service = PrecoDaHoraService()
+
+    class FakeResponse:
+        status_code = 200
+        text = "<html>recaptcha challenge</html>"
+        url = "https://precodahora.ba.gov.br/challenge/"
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+    monkeypatch.setattr(service.session, "get", lambda *args, **kwargs: FakeResponse())
+    try:
+        service._obter_csrf_token()
+        assert False, "Era esperado UpstreamChallengeError"
+    except UpstreamChallengeError:
+        assert True
+
+
+def test_buscar_deve_respeitar_cooldown_de_challenge():
+    service = PrecoDaHoraService()
+    service._challenge_blocked_until = precos_module.time.time() + 60
+    try:
+        service._raise_if_challenge_cooldown_active()
+        assert False, "Era esperado UpstreamChallengeError"
+    except UpstreamChallengeError:
+        assert True
+
+
+def test_obter_csrf_token_deve_resetar_sessao_uma_vez_apos_challenge(monkeypatch):
+    service = PrecoDaHoraService()
+    chamadas = {"count": 0}
+
+    class FakeResponse:
+        def __init__(self, text: str, url: str):
+            self.status_code = 200
+            self.text = text
+            self.url = url
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+    def fake_get(*args, **kwargs):
+        chamadas["count"] += 1
+        if chamadas["count"] == 1:
+            return FakeResponse(
+                "<html>recaptcha challenge</html>",
+                "https://precodahora.ba.gov.br/challenge/",
+            )
+        return FakeResponse(
+            '<meta id="validate" data-id="token_ok" />',
+            "https://precodahora.ba.gov.br/produtos/",
+        )
+
+    monkeypatch.setattr(service, "_reset_session", lambda: None)
+    monkeypatch.setattr(service.session, "get", fake_get)
+    token = service._obter_csrf_token()
+    assert token == "token_ok"
+    assert chamadas["count"] == 2
+
+
+def test_buscar_deve_resetar_sessao_uma_vez_apos_challenge(monkeypatch):
+    service = PrecoDaHoraService()
+
+    class FakeResponse:
+        def __init__(self, status_code: int, text: str, url: str):
+            self.status_code = status_code
+            self.text = text
+            self.url = url
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        @staticmethod
+        def json():
+            return {"totalRegistros": 0, "resultado": []}
+
+    def fake_token():
+        return "tok"
+
+    chamadas_post = {"count": 0}
+
+    def fake_post(payload, headers):
+        chamadas_post["count"] += 1
+        if chamadas_post["count"] == 1:
+            return FakeResponse(
+                200,
+                "<html>recaptcha challenge</html>",
+                "https://precodahora.ba.gov.br/challenge/",
+            )
+        return FakeResponse(
+            200,
+            "{}",
+            "https://precodahora.ba.gov.br/produtos/",
+        )
+
+    monkeypatch.setattr(service, "_obter_csrf_token", fake_token)
+    monkeypatch.setattr(service, "_post_with_retry", fake_post)
+
+    params = SearchParams(
+        gtin="7896224802963",
+        latitude=-12.0,
+        longitude=-38.0,
+        raio=15,
+        horas=72,
+    )
+    result = service._buscar(params)
+    assert result == {"totalRegistros": 0, "resultado": []}
+    assert chamadas_post["count"] == 2

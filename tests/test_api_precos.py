@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.main import _rate_limit_bucket, app
-from app.services.precos import get_preco_da_hora_service
+from app.services.precos import UpstreamChallengeError, get_preco_da_hora_service
 
 
 class FakeServiceSuccess:
@@ -34,6 +34,11 @@ class FakeServiceNetworkError:
 class FakeServiceRuntimeError:
     def buscar_lista(self, gtins, latitude, longitude, raio, horas):
         raise RuntimeError("erro interno")
+
+
+class FakeServiceChallengeError:
+    def buscar_lista(self, gtins, latitude, longitude, raio, horas):
+        raise UpstreamChallengeError("challenge")
 
 
 def test_healthcheck_deve_retornar_ok():
@@ -115,4 +120,15 @@ def test_post_buscar_deve_retornar_500_para_runtime_error():
     client = TestClient(app)
     response = client.post("/api/v1/precos/buscar", json={"gtins": ["7894904015108"]})
     assert response.status_code == 500
+    app.dependency_overrides.clear()
+
+
+def test_post_buscar_deve_retornar_503_para_challenge():
+    app.dependency_overrides[get_preco_da_hora_service] = (
+        lambda: FakeServiceChallengeError()
+    )
+    client = TestClient(app)
+    response = client.post("/api/v1/precos/buscar", json={"gtins": ["7894904015108"]})
+    assert response.status_code == 503
+    assert "challenge" in response.json()["detail"].lower()
     app.dependency_overrides.clear()

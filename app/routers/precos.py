@@ -4,7 +4,11 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.schemas.precos import BuscarPrecosRequest, BuscarPrecosResponse
-from app.services.precos import PrecoDaHoraService, get_preco_da_hora_service
+from app.services.precos import (
+    PrecoDaHoraService,
+    UpstreamChallengeError,
+    get_preco_da_hora_service,
+)
 
 router = APIRouter(prefix="/precos", tags=["Precos"])
 logger = logging.getLogger("precodahora.api")
@@ -35,6 +39,15 @@ def buscar_precos(
         raise HTTPException(
             status_code=503,
             detail="Erro de rede ao consultar o servico externo.",
+        ) from exc
+    except UpstreamChallengeError as exc:
+        logger.exception("upstream_challenge_detected")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Upstream com captcha/challenge temporario. "
+                "Tente novamente em instantes."
+            ),
         ) from exc
     except RuntimeError as exc:
         logger.exception("internal_runtime_error")

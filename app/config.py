@@ -8,8 +8,8 @@ class Settings(BaseSettings):
         "API para buscar os 5 menores precos de produtos no Preco da Hora Bahia."
     )
     base_url: str = "https://precodahora.ba.gov.br/produtos/"
-    default_latitude: float = -12.2690245
-    default_longitude: float = -38.9295865
+    default_latitude: float = -12.2535848
+    default_longitude: float = -38.9600762
     default_raio: int = 15
     default_horas: int = 72
     request_timeout_seconds: float = 20.0
@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     request_backoff_base_seconds: float = 0.5
     cache_ttl_seconds: int = 900
     rate_limit_requests_per_minute: int = 60
+    challenge_cooldown_seconds: int = 300
+    enable_session_reset_on_challenge: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",
