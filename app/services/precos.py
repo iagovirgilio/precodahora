@@ -25,10 +25,6 @@ BROWSER_HEADERS = {
 _SERVICE_SINGLETON: "PrecoDaHoraService | None" = None
 
 
-class UpstreamChallengeError(RuntimeError):
-    pass
-
-
 @dataclass
 class SearchParams:
     gtin: str
@@ -46,36 +42,6 @@ class PrecoDaHoraService:
         self.session.headers.update(BROWSER_HEADERS)
         self._csrf_token: Optional[str] = None
         self._cache: dict[tuple[str, float, float, int, int], tuple[float, dict]] = {}
-        self._challenge_blocked_until = 0.0
-        self._session_reset_attempted = False
-
-    @staticmethod
-    def _is_challenge_response(response: requests.Response) -> bool:
-        url = str(getattr(response, "url", "")).lower()
-        text = (getattr(response, "text", "") or "").lower()
-        return (
-            "/challenge/" in url
-            or "recaptcha" in text
-            or "/challenge/" in text
-            or "api2/userverify" in text
-        )
-
-    def _activate_challenge_cooldown(self) -> None:
-        self._challenge_blocked_until = (
-            time.time() + settings.challenge_cooldown_seconds
-        )
-        self._session_reset_attempted = False
-
-    def _raise_if_challenge_cooldown_active(self) -> None:
-        if time.time() < self._challenge_blocked_until:
-            raise UpstreamChallengeError(
-                "Upstream em modo challenge temporario. Tente novamente em instantes."
-            )
-
-    def _reset_session(self) -> None:
-        self.session = requests.Session()
-        self.session.headers.update(BROWSER_HEADERS)
-        self._csrf_token = None
 
     def _post_with_retry(
         self,
@@ -113,7 +79,6 @@ class PrecoDaHoraService:
         raise RuntimeError("Falha inesperada ao executar requisicao externa.")
 
     def _obter_csrf_token(self) -> str:
-        self._raise_if_challenge_cooldown_active()
         ultima_excecao: Exception | None = None
         response: requests.Response | None = None
         for tentativa in range(1, settings.request_retry_attempts + 1):
@@ -144,19 +109,6 @@ class PrecoDaHoraService:
                 raise ultima_excecao
             raise RuntimeError("Falha ao obter sessao inicial.")
 
-        if self._is_challenge_response(response):
-            if (
-                settings.enable_session_reset_on_challenge
-                and not self._session_reset_attempted
-            ):
-                self._session_reset_attempted = True
-                self._reset_session()
-                return self._obter_csrf_token()
-            self._activate_challenge_cooldown()
-            raise UpstreamChallengeError(
-                "Captcha/challenge detectado no upstream durante obtencao do token."
-            )
-
         match = re.search(
             r'<meta\s+id=["\']validate["\'][^>]+data-id=["\']([^"\']+)["\']',
             response.text,
@@ -178,7 +130,6 @@ class PrecoDaHoraService:
         self._csrf_token = self._obter_csrf_token()
 
     def _buscar(self, params: SearchParams) -> dict:
-        self._raise_if_challenge_cooldown_active()
         cache_key = (
             params.gtin,
             params.latitude,
@@ -215,23 +166,9 @@ class PrecoDaHoraService:
             headers["x-csrftoken"] = self._csrf_token
             response = self._post_with_retry(payload=payload, headers=headers)
 
-        if self._is_challenge_response(response):
-            if (
-                settings.enable_session_reset_on_challenge
-                and not self._session_reset_attempted
-            ):
-                self._session_reset_attempted = True
-                self._reset_session()
-                return self._buscar(params)
-            self._activate_challenge_cooldown()
-            raise UpstreamChallengeError(
-                "Captcha/challenge detectado no upstream durante consulta."
-            )
-
         response.raise_for_status()
         json_data = response.json()
         self._cache[cache_key] = (agora, json_data)
-        self._session_reset_attempted = False
         return json_data
 
     @staticmethod

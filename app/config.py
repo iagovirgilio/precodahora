@@ -17,8 +17,6 @@ class Settings(BaseSettings):
     request_backoff_base_seconds: float = 0.5
     cache_ttl_seconds: int = 900
     rate_limit_requests_per_minute: int = 60
-    challenge_cooldown_seconds: int = 300
-    enable_session_reset_on_challenge: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",
