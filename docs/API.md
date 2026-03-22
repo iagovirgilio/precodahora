@@ -10,6 +10,17 @@ Consulta os dados de precos para uma lista de GTINs e retorna:
 - `localizacao`
 - `resultados` por GTIN
 
+Cabecalhos de resposta (observabilidade do cache e do upstream):
+
+| Cabecalho | Significado |
+|-----------|-------------|
+| `X-Cache` | `HIT` (todos os GTINs do cache), `MISS` (nenhum hit) ou `MIXED` |
+| `X-Cache-Hits` | Quantidade de consultas atendidas pelo cache interno |
+| `X-Cache-Misses` | Quantidade de consultas que foram ao portal |
+| `X-Upstream-Posts` | POSTs HTTP ao portal na requisicao (401 com retry conta 2 no GTIN afetado) |
+
+O mesmo resumo e registrado em log (`precos_buscar ... x_cache=...`) no logger `precodahora.api`.
+
 ### Request body
 
 ```json

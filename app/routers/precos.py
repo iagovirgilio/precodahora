@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.schemas.precos import BuscarPrecosRequest, BuscarPrecosResponse
 from app.services.precos import PrecoDaHoraService, get_preco_da_hora_service
@@ -13,16 +13,31 @@ logger = logging.getLogger("precodahora.api")
 @router.post("/buscar", response_model=BuscarPrecosResponse)
 def buscar_precos(
     payload: BuscarPrecosRequest,
+    response: Response,
     service: PrecoDaHoraService = Depends(get_preco_da_hora_service),
 ) -> BuscarPrecosResponse:
     try:
-        resposta = service.buscar_lista(
+        resposta, obs = service.buscar_lista(
             gtins=payload.gtins,
             latitude=payload.latitude,
             longitude=payload.longitude,
             raio=payload.raio,
             horas=payload.horas,
         )
+        x_cache = obs.resumo_cache()
+        logger.info(
+            "precos_buscar gtin_count=%s cache_hits=%s cache_misses=%s "
+            "upstream_posts=%s x_cache=%s",
+            len(payload.gtins),
+            obs.cache_hits,
+            obs.cache_misses,
+            obs.upstream_posts,
+            x_cache,
+        )
+        response.headers["X-Cache"] = x_cache
+        response.headers["X-Cache-Hits"] = str(obs.cache_hits)
+        response.headers["X-Cache-Misses"] = str(obs.cache_misses)
+        response.headers["X-Upstream-Posts"] = str(obs.upstream_posts)
         return BuscarPrecosResponse(**resposta)
     except requests.HTTPError as exc:
         detail = "Falha ao consultar o Preco da Hora."

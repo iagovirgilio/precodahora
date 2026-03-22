@@ -13,10 +13,12 @@ Este projeto segue, de forma simplificada:
 
 - Limite configuravel de entradas no cache upstream (`PRECODAHORA_CACHE_MAX_ENTRIES`) com eviction LRU.
 - `PRECODAHORA_RATE_LIMIT_WINDOW_SECONDS` e campos extras em `GET /health`.
+- Cabecalhos `X-Cache`, `X-Cache-Hits`, `X-Cache-Misses`, `X-Upstream-Posts` e log estruturado em `POST /api/v1/precos/buscar`.
 
 ### Changed
 
 - Documentacao do cache (chave, TTL, LRU) em `docs/ARCHITECTURE.md` e `docs/API.md`.
+- `PrecoDaHoraService.buscar_lista` passa a retornar `(corpo, observabilidade)` para uso no router.
 
 ## [0.1.0] - 2026-03-20
 

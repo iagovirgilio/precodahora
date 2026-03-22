@@ -39,6 +39,20 @@ class SearchParams:
     ordenar: str = "preco.asc"
 
 
+@dataclass
+class BuscarPrecosObservabilidade:
+    cache_hits: int = 0
+    cache_misses: int = 0
+    upstream_posts: int = 0
+
+    def resumo_cache(self) -> str:
+        if self.cache_misses == 0:
+            return "HIT"
+        if self.cache_hits == 0:
+            return "MISS"
+        return "MIXED"
+
+
 class PrecoDaHoraService:
     def __init__(self) -> None:
         self.session = requests.Session()
@@ -155,7 +169,11 @@ class PrecoDaHoraService:
                 self._cache.popitem(last=False)
         self._cache[key] = (agora, payload)
 
-    def _buscar(self, params: SearchParams) -> dict:
+    def _buscar(
+        self,
+        params: SearchParams,
+        obs: BuscarPrecosObservabilidade | None = None,
+    ) -> dict:
         cache_key: _CacheKey = (
             params.gtin,
             params.latitude,
@@ -165,7 +183,12 @@ class PrecoDaHoraService:
         )
         em_cache = self._cache_obter(cache_key)
         if em_cache is not None:
+            if obs is not None:
+                obs.cache_hits += 1
             return em_cache
+
+        if obs is not None:
+            obs.cache_misses += 1
 
         if not self._csrf_token:
             self._csrf_token = self._obter_csrf_token()
@@ -185,11 +208,15 @@ class PrecoDaHoraService:
         }
 
         response = self._post_with_retry(payload=payload, headers=headers)
+        if obs is not None:
+            obs.upstream_posts += 1
 
         if response.status_code == 401:
             self._renovar_token()
             headers["x-csrftoken"] = self._csrf_token
             response = self._post_with_retry(payload=payload, headers=headers)
+            if obs is not None:
+                obs.upstream_posts += 1
 
         response.raise_for_status()
         json_data = response.json()
@@ -321,6 +348,7 @@ class PrecoDaHoraService:
         longitude: float,
         raio: int,
         horas: int,
+        obs: BuscarPrecosObservabilidade | None = None,
     ) -> dict:
         dados = self._buscar(
             SearchParams(
@@ -329,7 +357,8 @@ class PrecoDaHoraService:
                 longitude=longitude,
                 raio=raio,
                 horas=horas,
-            )
+            ),
+            obs=obs,
         )
         resultados = dados.get("resultado", [])
         return {
@@ -344,7 +373,8 @@ class PrecoDaHoraService:
         longitude: float,
         raio: int,
         horas: int,
-    ) -> dict:
+    ) -> tuple[dict, BuscarPrecosObservabilidade]:
+        obs = BuscarPrecosObservabilidade()
         consultado_em = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         resultados = {
             gtin: self.top5_mais_baratos(
@@ -353,10 +383,11 @@ class PrecoDaHoraService:
                 longitude=longitude,
                 raio=raio,
                 horas=horas,
+                obs=obs,
             )
             for gtin in gtins
         }
-        return {
+        corpo = {
             "consultado_em": consultado_em,
             "localizacao": {
                 "latitude": latitude,
@@ -365,6 +396,7 @@ class PrecoDaHoraService:
             },
             "resultados": resultados,
         }
+        return corpo, obs
 
 
 def get_preco_da_hora_service() -> PrecoDaHoraService:

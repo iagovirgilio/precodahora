@@ -37,6 +37,8 @@ O servico mantem em memoria a **resposta JSON bruta** do POST ao portal, para na
 - **Limite de entradas**: `PRECODAHORA_CACHE_MAX_ENTRIES` — politica LRU; ao encher, remove a entrada **menos usada recentemente**. Valor `0` desativa o teto (comportamento anterior, so limitado pelo TTL).
 - **Escopo**: um processo Python; com varios workers, cada um tem cache proprio.
 
+Em `POST /api/v1/precos/buscar`, o router acrescenta cabecalhos `X-Cache` / `X-Cache-Hits` / `X-Cache-Misses` / `X-Upstream-Posts` e um log `precos_buscar` com o mesmo resumo.
+
 ## Limites atuais
 
 - Cache e rate limit em memoria local (processo unico).
