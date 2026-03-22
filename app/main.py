@@ -42,7 +42,7 @@ async def rate_limit_middleware(request: Request, call_next):
     ip = request.client.host if request.client else "unknown"
     now = time.time()
     bucket = _rate_limit_bucket[ip]
-    janela = 60
+    janela = settings.rate_limit_window_seconds
     while bucket and (now - bucket[0]) > janela:
         bucket.popleft()
     if len(bucket) >= settings.rate_limit_requests_per_minute:
@@ -67,4 +67,9 @@ async def rate_limit_middleware(request: Request, call_next):
 
 @app.get("/health", tags=["Health"])
 def healthcheck() -> dict[str, str | int]:
-    return {"status": "ok", "cache_ttl_seconds": settings.cache_ttl_seconds}
+    return {
+        "status": "ok",
+        "cache_ttl_seconds": settings.cache_ttl_seconds,
+        "cache_max_entries": settings.cache_max_entries,
+        "rate_limit_window_seconds": settings.rate_limit_window_seconds,
+    }

@@ -9,6 +9,15 @@ Este projeto segue, de forma simplificada:
 
 ## [Unreleased]
 
+### Added
+
+- Limite configuravel de entradas no cache upstream (`PRECODAHORA_CACHE_MAX_ENTRIES`) com eviction LRU.
+- `PRECODAHORA_RATE_LIMIT_WINDOW_SECONDS` e campos extras em `GET /health`.
+
+### Changed
+
+- Documentacao do cache (chave, TTL, LRU) em `docs/ARCHITECTURE.md` e `docs/API.md`.
+
 ## [0.1.0] - 2026-03-20
 
 ### Added

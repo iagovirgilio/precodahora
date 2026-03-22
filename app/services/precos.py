@@ -1,5 +1,6 @@
 import re
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
@@ -24,6 +25,8 @@ BROWSER_HEADERS = {
 
 _SERVICE_SINGLETON: "PrecoDaHoraService | None" = None
 
+_CacheKey = tuple[str, float, float, int, int]
+
 
 @dataclass
 class SearchParams:
@@ -41,7 +44,7 @@ class PrecoDaHoraService:
         self.session = requests.Session()
         self.session.headers.update(BROWSER_HEADERS)
         self._csrf_token: Optional[str] = None
-        self._cache: dict[tuple[str, float, float, int, int], tuple[float, dict]] = {}
+        self._cache: OrderedDict[_CacheKey, tuple[float, dict]] = OrderedDict()
 
     def _post_with_retry(
         self,
@@ -129,24 +132,46 @@ class PrecoDaHoraService:
     def _renovar_token(self) -> None:
         self._csrf_token = self._obter_csrf_token()
 
+    def _cache_obter(self, key: _CacheKey) -> dict | None:
+        item = self._cache.get(key)
+        if not item:
+            return None
+        gravado_em, payload = item
+        if time.time() - gravado_em >= settings.cache_ttl_seconds:
+            del self._cache[key]
+            return None
+        self._cache.move_to_end(key)
+        return payload
+
+    def _cache_gravar(self, key: _CacheKey, payload: dict) -> None:
+        agora = time.time()
+        if key in self._cache:
+            self._cache[key] = (agora, payload)
+            self._cache.move_to_end(key)
+            return
+        maximo = settings.cache_max_entries
+        if maximo > 0:
+            while len(self._cache) >= maximo:
+                self._cache.popitem(last=False)
+        self._cache[key] = (agora, payload)
+
     def _buscar(self, params: SearchParams) -> dict:
-        cache_key = (
+        cache_key: _CacheKey = (
             params.gtin,
             params.latitude,
             params.longitude,
             params.raio,
             params.horas,
         )
-        agora = time.time()
-        cache_item = self._cache.get(cache_key)
-        if cache_item and (agora - cache_item[0]) < settings.cache_ttl_seconds:
-            return cache_item[1]
+        em_cache = self._cache_obter(cache_key)
+        if em_cache is not None:
+            return em_cache
 
         if not self._csrf_token:
             self._csrf_token = self._obter_csrf_token()
 
         payload = {
-            "gtin": params.gtin,
+            "termo": params.gtin,
             "horas": str(params.horas),
             "latitude": str(params.latitude),
             "longitude": str(params.longitude),
@@ -168,7 +193,7 @@ class PrecoDaHoraService:
 
         response.raise_for_status()
         json_data = response.json()
-        self._cache[cache_key] = (agora, json_data)
+        self._cache_gravar(cache_key, json_data)
         return json_data
 
     @staticmethod

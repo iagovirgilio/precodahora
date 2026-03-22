@@ -28,6 +28,15 @@ A aplicacao segue arquitetura em camadas:
 - **Protecao da fonte**: cache e rate limiting para reduzir carga.
 - **Observabilidade**: logs JSON no nivel de request e erro.
 
+## Cache da fonte externa (upstream)
+
+O servico mantem em memoria a **resposta JSON bruta** do POST ao portal, para nao repetir a mesma consulta dentro do TTL.
+
+- **Chave**: tupla `(gtin, latitude, longitude, raio, horas)` — os mesmos campos enviados ao site (pagina e ordenacao fixos no fluxo atual).
+- **TTL**: `PRECODAHORA_CACHE_TTL_SECONDS` — aplica-se apenas a **reutilizar** o resultado da fonte; nao ha endpoint de invalidacao manual.
+- **Limite de entradas**: `PRECODAHORA_CACHE_MAX_ENTRIES` — politica LRU; ao encher, remove a entrada **menos usada recentemente**. Valor `0` desativa o teto (comportamento anterior, so limitado pelo TTL).
+- **Escopo**: um processo Python; com varios workers, cada um tem cache proprio.
+
 ## Limites atuais
 
 - Cache e rate limit em memoria local (processo unico).

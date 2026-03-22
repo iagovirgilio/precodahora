@@ -69,7 +69,22 @@ Consulta os dados de precos para uma lista de GTINs e retorna:
 
 ### `GET /health`
 
-Retorna status da API e parametros basicos.
+Retorna status da API e alguns parametros operacionais (para conferencia de deploy), por exemplo:
+
+- `cache_ttl_seconds`: tempo maximo para reutilizar resposta da fonte externa.
+- `cache_max_entries`: tamanho maximo do cache em memoria (LRU); `0` significa sem limite de entradas.
+- `rate_limit_window_seconds`: janela em segundos do rate limit por IP (ver `429`).
+
+Exemplo:
+
+```json
+{
+  "status": "ok",
+  "cache_ttl_seconds": 900,
+  "cache_max_entries": 512,
+  "rate_limit_window_seconds": 60
+}
+```
 
 ## Codigos de status
 

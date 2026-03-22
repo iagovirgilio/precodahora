@@ -84,6 +84,8 @@ Principais:
 - `PRECODAHORA_REQUEST_RETRY_ATTEMPTS`
 - `PRECODAHORA_REQUEST_BACKOFF_BASE_SECONDS`
 - `PRECODAHORA_CACHE_TTL_SECONDS`
+- `PRECODAHORA_CACHE_MAX_ENTRIES`
+- `PRECODAHORA_RATE_LIMIT_WINDOW_SECONDS`
 - `PRECODAHORA_RATE_LIMIT_REQUESTS_PER_MINUTE`
 
 Veja um template em `.env.example`.
@@ -110,8 +112,8 @@ Cobertura:
 ## Observabilidade e resiliencia
 
 - Logs estruturados em JSON.
-- Rate limiting por IP (janela de 60s).
-- Cache em memoria por combinacao de parametros de busca.
+- Rate limiting por IP (janela configuravel, padrao 60s).
+- Cache em memoria (TTL + LRU) por combinacao de parametros de busca na fonte externa.
 - Retry com backoff exponencial para erros transitorios.
 - Tratamento de erro upstream com respostas HTTP consistentes (502/503/500).
 

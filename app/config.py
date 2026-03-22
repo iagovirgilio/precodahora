@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     request_retry_attempts: int = 3
     request_backoff_base_seconds: float = 0.5
     cache_ttl_seconds: int = 900
+    cache_max_entries: int = 512
+    rate_limit_window_seconds: int = 60
     rate_limit_requests_per_minute: int = 60
 
     model_config = SettingsConfigDict(
