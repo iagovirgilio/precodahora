@@ -17,3 +17,11 @@ def test_deve_normalizar_gtin_removendo_caracteres_nao_numericos():
 def test_deve_rejeitar_gtin_com_tamanho_invalido():
     with pytest.raises(ValidationError):
         BuscarPrecosRequest(gtins=["1234567"])
+
+
+def test_deve_rejeitar_lista_gtins_acima_do_maximo(monkeypatch):
+    monkeypatch.setattr("app.schemas.precos.settings.max_gtins_per_request", 2)
+    with pytest.raises(ValidationError, match="No maximo 2 GTINs"):
+        BuscarPrecosRequest(
+            gtins=["7894904015108", "7896224802963", "12345670"],
+        )

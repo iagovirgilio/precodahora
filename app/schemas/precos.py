@@ -20,6 +20,9 @@ class BuscarPrecosRequest(BaseModel):
     @field_validator("gtins")
     @classmethod
     def validar_gtins(cls, value: list[str]) -> list[str]:
+        max_n = settings.max_gtins_per_request
+        if len(value) > max_n:
+            raise ValueError(f"No maximo {max_n} GTINs por requisicao.")
         tamanhos_validos = {8, 12, 13, 14}
         normalizados: list[str] = []
         for gtin in value:

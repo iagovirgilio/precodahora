@@ -34,10 +34,12 @@ Prefixo: `PRECODAHORA_`
 - `CACHE_MAX_ENTRIES` (LRU; `0` = sem limite de entradas)
 - `RATE_LIMIT_WINDOW_SECONDS`
 - `RATE_LIMIT_REQUESTS_PER_MINUTE`
+- `API_AUTH_ENABLED` / `API_KEYS` / `MAX_GTINS_PER_REQUEST`
 
 ## Checklist de deploy
 
 - [ ] Variaveis de ambiente definidas
+- [ ] Em producao: `API_AUTH_ENABLED=true` e `API_KEYS` nao vazio (se usar autenticacao)
 - [ ] Testes passando
 - [ ] Cobertura minima aceita pelo time
 - [ ] Healthcheck respondendo `200`
@@ -47,5 +49,5 @@ Prefixo: `PRECODAHORA_`
 
 - **`429` frequente**: aumentar limite por minuto ou reduzir carga do cliente.
 - **`502`**: erro HTTP do provedor externo.
-- **`503`**: erro de conectividade/rede no provedor.
+- **`503`**: erro de conectividade/rede no provedor, ou autenticacao ligada sem `API_KEYS` configuradas.
 - **`500`**: erro interno; verificar logs estruturados para stacktrace.

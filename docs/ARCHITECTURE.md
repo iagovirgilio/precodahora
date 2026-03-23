@@ -39,6 +39,14 @@ O servico mantem em memoria a **resposta JSON bruta** do POST ao portal, para na
 
 Em `POST /api/v1/precos/buscar`, o router acrescenta cabecalhos `X-Cache` / `X-Cache-Hits` / `X-Cache-Misses` / `X-Upstream-Posts` e um log `precos_buscar` com o mesmo resumo.
 
+## Integracao (Fase 1)
+
+- **API key** em `POST /api/v1/precos/buscar` quando `PRECODAHORA_API_AUTH_ENABLED=true` (`app/deps/auth.py`). Aceita `Authorization: Bearer` ou `X-API-Key`.
+- **`X-Request-Id`**: middleware gera ou valida e devolve no response; logs `http_request` e `precos_buscar` incluem `request_id`.
+- **Erros HTTP**: envelope comum `{"error": {"code", "message", "request_id?", "details?"}}` via handlers em `app/main.py`.
+- **Rate limit**: em memoria, por identidade (`key:<hash>` se houver token, senao `ip:<host>`). Rotas isentas: `/health`, `/docs`, `/redoc`, `/openapi.json`.
+- **Teto de GTINs**: `PRECODAHORA_MAX_GTINS_PER_REQUEST` validado no schema de entrada.
+
 ## Limites atuais
 
 - Cache e rate limit em memoria local (processo unico).

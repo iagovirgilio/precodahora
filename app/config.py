@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     cache_max_entries: int = 512
     rate_limit_window_seconds: int = 60
     rate_limit_requests_per_minute: int = 60
+    api_keys: str = ""
+    api_auth_enabled: bool = False
+    max_gtins_per_request: int = 50
 
     model_config = SettingsConfigDict(
         env_file=".env",

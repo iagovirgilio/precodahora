@@ -1,8 +1,9 @@
 import logging
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
+from app.deps.auth import require_api_key
 from app.schemas.precos import BuscarPrecosRequest, BuscarPrecosResponse
 from app.services.precos import PrecoDaHoraService, get_preco_da_hora_service
 
@@ -12,10 +13,13 @@ logger = logging.getLogger("precodahora.api")
 
 @router.post("/buscar", response_model=BuscarPrecosResponse)
 def buscar_precos(
+    request: Request,
     payload: BuscarPrecosRequest,
     response: Response,
+    _auth: None = Depends(require_api_key),
     service: PrecoDaHoraService = Depends(get_preco_da_hora_service),
 ) -> BuscarPrecosResponse:
+    rid = getattr(request.state, "request_id", None)
     try:
         resposta, obs = service.buscar_lista(
             gtins=payload.gtins,
@@ -26,8 +30,9 @@ def buscar_precos(
         )
         x_cache = obs.resumo_cache()
         logger.info(
-            "precos_buscar gtin_count=%s cache_hits=%s cache_misses=%s "
+            "precos_buscar request_id=%s gtin_count=%s cache_hits=%s cache_misses=%s "
             "upstream_posts=%s x_cache=%s",
+            rid,
             len(payload.gtins),
             obs.cache_hits,
             obs.cache_misses,
@@ -43,14 +48,14 @@ def buscar_precos(
         detail = "Falha ao consultar o Preco da Hora."
         if exc.response is not None:
             detail = f"Erro HTTP no servico externo: {exc.response.status_code}"
-        logger.exception("upstream_http_error")
+        logger.exception("upstream_http_error request_id=%s", rid)
         raise HTTPException(status_code=502, detail=detail) from exc
     except requests.RequestException as exc:
-        logger.exception("upstream_network_error")
+        logger.exception("upstream_network_error request_id=%s", rid)
         raise HTTPException(
             status_code=503,
             detail="Erro de rede ao consultar o servico externo.",
         ) from exc
     except RuntimeError as exc:
-        logger.exception("internal_runtime_error")
+        logger.exception("internal_runtime_error request_id=%s", rid)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

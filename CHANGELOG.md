@@ -11,13 +11,19 @@ Este projeto segue, de forma simplificada:
 
 ### Added
 
+- Autenticacao opcional por API key (`PRECODAHORA_API_AUTH_ENABLED`, `PRECODAHORA_API_KEYS`) em `POST /api/v1/precos/buscar` via `Authorization: Bearer` ou `X-API-Key`.
+- Middleware `X-Request-Id` (entrada opcional validada, resposta sempre com id) e inclusao em logs `http_request` e `precos_buscar`.
+- Respostas de erro com envelope JSON `{"error": {"code", "message", "request_id?", "details?"}}` para `HTTPException` e `RequestValidationError`.
+- Limite `PRECODAHORA_MAX_GTINS_PER_REQUEST` na lista `gtins`.
+- Rate limit por identidade: hash da chave quando presente, senao IP; isencao para `/health`, `/docs`, `/redoc`, `/openapi.json`.
+- Modulos `app/deps/auth.py`, `app/schemas/errors.py` e testes de integracao em `tests/test_api_integration.py`.
 - Limite configuravel de entradas no cache upstream (`PRECODAHORA_CACHE_MAX_ENTRIES`) com eviction LRU.
 - `PRECODAHORA_RATE_LIMIT_WINDOW_SECONDS` e campos extras em `GET /health`.
 - Cabecalhos `X-Cache`, `X-Cache-Hits`, `X-Cache-Misses`, `X-Upstream-Posts` e log estruturado em `POST /api/v1/precos/buscar`.
 
 ### Changed
 
-- Documentacao do cache (chave, TTL, LRU) em `docs/ARCHITECTURE.md` e `docs/API.md`.
+- Documentacao de contrato, cache (chave, TTL, LRU) e operacao (`docs/API.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `README.md`).
 - `PrecoDaHoraService.buscar_lista` passa a retornar `(corpo, observabilidade)` para uso no router.
 
 ## [0.1.0] - 2026-03-20
