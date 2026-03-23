@@ -11,7 +11,7 @@ Envie **uma** das opcoes:
 
 Chaves validas vêm de `PRECODAHORA_API_KEYS` (lista separada por virgula). Com autenticacao ligada e lista vazia, a API responde `503` com corpo padronizado (misconfiguracao).
 
-Rotas **sem** chave: `GET /health`, `GET /docs`, `GET /redoc`, `GET /openapi.json`.
+Rotas **sem** chave: `GET /health`, `GET /ready`, `GET /metrics`, `GET /docs`, `GET /redoc`, `GET /openapi.json`.
 
 ## Correlacao de requisicao
 
@@ -120,13 +120,14 @@ Limite de tamanho de `gtins`: no maximo `PRECODAHORA_MAX_GTINS_PER_REQUEST` iten
 
 ### `GET /health`
 
-Retorna status da API e alguns parametros operacionais (para conferencia de deploy), por exemplo:
+Liveness: processo ativo. Retorna parametros operacionais, por exemplo:
 
 - `cache_ttl_seconds`: tempo maximo para reutilizar resposta da fonte externa.
 - `cache_max_entries`: tamanho maximo do cache em memoria (LRU); `0` significa sem limite de entradas.
 - `rate_limit_window_seconds`: janela em segundos do rate limit (ver `429`).
+- `rate_limit_backend`: `memory` (sem Redis) ou `redis` quando `PRECODAHORA_REDIS_URL` esta definido e a conexao foi estabelecida no startup.
 
-Nao exige API key. **Nao** conta para o rate limit (assim como `/docs`, `/redoc`, `/openapi.json`).
+Nao exige API key. **Nao** conta para o rate limit (assim como `/ready`, `/metrics`, `/docs`, `/redoc`, `/openapi.json`).
 
 Exemplo:
 
@@ -135,13 +136,36 @@ Exemplo:
   "status": "ok",
   "cache_ttl_seconds": 900,
   "cache_max_entries": 512,
-  "rate_limit_window_seconds": 60
+  "rate_limit_window_seconds": 60,
+  "rate_limit_backend": "memory"
 }
 ```
+
+### `GET /ready`
+
+Readiness: dependencias opcionais. Com `PRECODAHORA_REDIS_URL` vazio, `checks.redis` e `skipped` e o status e `ready`. Com URL definida, exige `PING` ao Redis; se falhar, `503` e `status`: `not_ready`.
+
+Exemplo (`200`):
+
+```json
+{
+  "status": "ready",
+  "checks": {
+    "redis": "ok"
+  }
+}
+```
+
+Valores possiveis para `checks.redis`: `skipped`, `ok`, `unavailable`, `ping_failed`, `error`.
+
+### `GET /metrics`
+
+Formato Prometheus (texto). Contador `precodahora_http_requests_total` com labels `method` e `status_code`. Sem API key; isento de rate limit.
 
 ## Rate limit
 
 - Janela e teto: `PRECODAHORA_RATE_LIMIT_WINDOW_SECONDS` e `PRECODAHORA_RATE_LIMIT_REQUESTS_PER_MINUTE`.
+- **Backend**: com `PRECODAHORA_REDIS_URL` definido e cliente conectado, contagem **distribuida** via Redis (janela deslizante atomica com Lua). Sem Redis ou em falha transitória, usa memoria local do processo (fallback com log).
 - Identidade do balde: se a requisicao traz Bearer ou `X-API-Key`, o limite e **por chave** (hash no servidor); caso contrario, **por IP**.
 - Resposta `429` usa o envelope `error` com `code`: `rate_limit_exceeded`.
 

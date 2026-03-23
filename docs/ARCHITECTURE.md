@@ -44,10 +44,18 @@ Em `POST /api/v1/precos/buscar`, o router acrescenta cabecalhos `X-Cache` / `X-C
 - **API key** em `POST /api/v1/precos/buscar` quando `PRECODAHORA_API_AUTH_ENABLED=true` (`app/deps/auth.py`). Aceita `Authorization: Bearer` ou `X-API-Key`.
 - **`X-Request-Id`**: middleware gera ou valida e devolve no response; logs `http_request` e `precos_buscar` incluem `request_id`.
 - **Erros HTTP**: envelope comum `{"error": {"code", "message", "request_id?", "details?"}}` via handlers em `app/main.py`.
-- **Rate limit**: em memoria, por identidade (`key:<hash>` se houver token, senao `ip:<host>`). Rotas isentas: `/health`, `/docs`, `/redoc`, `/openapi.json`.
+- **Rate limit**: por identidade (`key:<hash>` se houver token, senao `ip:<host>`); backend Redis ou memoria. Rotas isentas: `/health`, `/ready`, `/metrics`, `/docs`, `/redoc`, `/openapi.json`.
 - **Teto de GTINs**: `PRECODAHORA_MAX_GTINS_PER_REQUEST` validado no schema de entrada.
+
+## Fase 2 (producao e escala)
+
+- **Redis opcional** (`PRECODAHORA_REDIS_URL`): rate limit compartilhado entre workers (script Lua + ZSET). Sem URL ou se o cliente nao conectar no startup, permanece `memory` com fallback em erro de Redis.
+- **Lifecycle**: `init_redis` / `close_redis` no lifespan da aplicacao (`app/redis_client.py`).
+- **Readiness**: `GET /ready` valida Redis quando configurado.
+- **Metricas**: `GET /metrics` (Prometheus), contador por metodo e status HTTP.
+- **Container**: `Dockerfile` e `docker-compose.yml` (API + Redis) na raiz do repositorio.
 
 ## Limites atuais
 
-- Cache e rate limit em memoria local (processo unico).
-- Em ambiente distribuido, mover para Redis (ou equivalente).
+- Cache da fonte externa continua em memoria local por processo.
+- Com varios workers sem Redis, rate limit por processo; com Redis, limite unificado.

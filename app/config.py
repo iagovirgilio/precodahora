@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     api_keys: str = ""
     api_auth_enabled: bool = False
     max_gtins_per_request: int = 50
+    redis_url: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

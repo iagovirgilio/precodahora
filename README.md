@@ -13,6 +13,8 @@ API FastAPI para consulta de precos de produtos (GTIN/EAN) no portal Preco da Ho
 - Python 3.12+
 - FastAPI
 - Requests
+- Redis (cliente async; rate limit distribuido opcional)
+- Prometheus client (metricas em `/metrics`)
 - Pydantic / pydantic-settings
 - Pytest + pytest-cov
 
@@ -21,9 +23,11 @@ API FastAPI para consulta de precos de produtos (GTIN/EAN) no portal Preco da Ho
 ```text
 app/
   config.py             # configuracoes da aplicacao
-  main.py               # app FastAPI, middleware, healthcheck e handlers de erro
+  main.py               # app FastAPI, middleware, health/ready/metrics, lifespan
   deps/
     auth.py             # API key e identidade para rate limit
+  redis_client.py       # pool Redis async (opcional)
+  rate_limiting.py      # rate limit memoria ou Redis (Lua)
   routers/
     precos.py           # endpoint HTTP
   schemas/
@@ -53,9 +57,21 @@ uv run uvicorn app.main:app --reload
 - Swagger: `http://127.0.0.1:8000/docs`
 - OpenAPI: `http://127.0.0.1:8000/openapi.json`
 
+## Docker (API + Redis)
+
+Na raiz do repositorio:
+
+```bash
+docker compose up --build
+```
+
+A API sobe em `http://127.0.0.1:8000` com `PRECODAHORA_REDIS_URL=redis://redis:6379/0` (ver `docker-compose.yml`). Imagem de producao: `docker build -t precodahora-api .`
+
 ## Endpoints
 
-- `GET /health`
+- `GET /health` — liveness e parametros operacionais
+- `GET /ready` — readiness (Redis quando `PRECODAHORA_REDIS_URL` definido)
+- `GET /metrics` — Prometheus
 - `POST /api/v1/precos/buscar`
 
 Exemplo de request:
@@ -113,6 +129,7 @@ Principais:
 - `PRECODAHORA_API_KEYS` (lista separada por virgula)
 - `PRECODAHORA_API_AUTH_ENABLED` (`true`/`false`)
 - `PRECODAHORA_MAX_GTINS_PER_REQUEST`
+- `PRECODAHORA_REDIS_URL` (ex.: `redis://localhost:6379/0`; vazio = rate limit so em memoria)
 
 Veja um template em `.env.example`.
 
@@ -138,7 +155,8 @@ Cobertura:
 ## Observabilidade e resiliencia
 
 - Logs estruturados em JSON (inclui `request_id` por requisicao).
-- Rate limiting por janela configuravel: por chave de API (hash) quando o cliente envia Bearer/`X-API-Key`, senao por IP.
+- Rate limiting por janela configuravel: por chave de API (hash) quando o cliente envia Bearer/`X-API-Key`, senao por IP; backend Redis opcional para varios workers.
+- Metricas HTTP expostas em `/metrics` (Prometheus).
 - Cache em memoria (TTL + LRU) por combinacao de parametros de busca na fonte externa.
 - Retry com backoff exponencial para erros transitorios.
 - Tratamento de erro upstream com respostas HTTP consistentes (502/503/500).

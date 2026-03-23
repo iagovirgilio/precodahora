@@ -7,6 +7,14 @@ uv sync
 uv run uvicorn app.main:app --reload
 ```
 
+## Docker Compose (API + Redis)
+
+```bash
+docker compose up --build
+```
+
+API em `http://127.0.0.1:8000`. Para so a imagem: `docker build -t precodahora-api .`
+
 ## Testes
 
 ```bash
@@ -35,6 +43,7 @@ Prefixo: `PRECODAHORA_`
 - `RATE_LIMIT_WINDOW_SECONDS`
 - `RATE_LIMIT_REQUESTS_PER_MINUTE`
 - `API_AUTH_ENABLED` / `API_KEYS` / `MAX_GTINS_PER_REQUEST`
+- `REDIS_URL` (opcional; rate limit compartilhado entre instancias)
 
 ## Checklist de deploy
 
@@ -42,7 +51,8 @@ Prefixo: `PRECODAHORA_`
 - [ ] Em producao: `API_AUTH_ENABLED=true` e `API_KEYS` nao vazio (se usar autenticacao)
 - [ ] Testes passando
 - [ ] Cobertura minima aceita pelo time
-- [ ] Healthcheck respondendo `200`
+- [ ] `GET /health` respondendo `200` (liveness)
+- [ ] `GET /ready` respondendo `200` quando Redis e obrigatorio no ambiente
 - [ ] Logs JSON coletados no ambiente
 
 ## Troubleshooting rapido

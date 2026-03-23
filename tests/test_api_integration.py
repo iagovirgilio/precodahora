@@ -11,9 +11,10 @@ def client(monkeypatch):
     monkeypatch.setattr("app.config.settings.api_keys", "integration-test-key")
     monkeypatch.setattr("app.config.settings.rate_limit_requests_per_minute", 5)
     monkeypatch.setattr("app.config.settings.max_gtins_per_request", 3)
-    import app.main as main_mod
+    monkeypatch.setattr("app.config.settings.redis_url", "")
+    from app import rate_limiting as rl_mod
 
-    main_mod._rate_limit_bucket.clear()
+    rl_mod.clear_memory_buckets()
 
     class FakePrecoService:
         def buscar_lista(self, **_kwargs):
@@ -34,7 +35,7 @@ def client(monkeypatch):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
-    main_mod._rate_limit_bucket.clear()
+    rl_mod.clear_memory_buckets()
 
 
 def test_health_sem_api_key(client):

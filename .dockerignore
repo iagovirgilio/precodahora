@@ -1,0 +1,15 @@
+.venv
+.git
+.github
+.pytest_cache
+htmlcov
+**/__pycache__
+*.pyc
+.env
+*.md
+!README.md
+.mypy_cache
+.ruff_cache
+.cursor
+mcps
+terminals

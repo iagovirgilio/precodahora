@@ -1,0 +1,14 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PRECODAHORA_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis

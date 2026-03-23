@@ -11,6 +11,11 @@ Este projeto segue, de forma simplificada:
 
 ### Added
 
+- Fase 2: `PRECODAHORA_REDIS_URL` opcional para rate limit distribuido (Lua + ZSET); fallback em memoria se URL vazia ou erro no Redis.
+- `GET /ready` (readiness) e `GET /metrics` (Prometheus `precodahora_http_requests_total`).
+- `GET /health` inclui `rate_limit_backend` (`memory` ou `redis`).
+- `Dockerfile`, `docker-compose.yml` (API + Redis) e `.dockerignore`.
+- Dependencias `redis` e `prometheus-client`; modulos `app/redis_client.py` e `app/rate_limiting.py`.
 - Autenticacao opcional por API key (`PRECODAHORA_API_AUTH_ENABLED`, `PRECODAHORA_API_KEYS`) em `POST /api/v1/precos/buscar` via `Authorization: Bearer` ou `X-API-Key`.
 - Middleware `X-Request-Id` (entrada opcional validada, resposta sempre com id) e inclusao em logs `http_request` e `precos_buscar`.
 - Respostas de erro com envelope JSON `{"error": {"code", "message", "request_id?", "details?"}}` para `HTTPException` e `RequestValidationError`.
